@@ -110,6 +110,22 @@
             };
         };
 
+        /**
+         * Canvasに画像を描画し、明度（Lightness）を周期的にシフト（回転）させます。
+         * HSL色空間のL値（明度 0-100）に、時間経過で変化するrotation値を加算し、
+         * 画像を明るくしたり暗くしたりするアニメーション効果を作成します。
+         * * 注意：この関数が動作するには、グローバルまたはスコープ内で以下の関数が定義されている必要があります。
+         * - rgbToHsl(r, g, b)
+         * - hslToRgb(h, s, l)
+         *
+         * @param {CanvasRenderingContext2D} ctx - 2D描画コンテキスト
+         * @param {number} x - 描画領域のX座標
+         * @param {number} y - 描画領域のY座標
+         * @param {number} width - 描画領域の幅
+         * @param {number} height - 描画領域の高さ
+         * @param {HTMLImageElement} sourceImage - 元の画像要素
+         * @param {number} rotation - 明度をシフトさせる度数/オフセット (例: 0〜100)
+         */
         const drawLightnessRotation = (ctx, x, y, width, height, sourceImage, rotation = 0) => {
             console.assert(sourceImage.complete);
 
