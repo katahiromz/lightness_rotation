@@ -62,6 +62,18 @@ const rgbToHsl = (r, g, b) => {
 };
 
 /**
+ * 結果が常に [0, |y|) の範囲になる数学的剰余（C++やJavaの負の数に対する挙動を修正）
+ * @param {number} x - 描画領域のX座標
+ * @param {number} y - 描画領域のY座標
+ * @returns 正の剰余の値
+ */
+const mathMod = (x, y) => {
+    const r = x % y;
+    // r が y と異なる符号を持つ場合（rが負でyが正、またはその逆）に y を足す
+    return (r < 0) ? r + y : r;
+};
+
+/**
  * HSL (H: 0-360, S/L: 0-100) を RGB (0-255) に変換します。
  * @param {number} h 色相 (0-360)
  * @param {number} s 彩度 (0-100)
@@ -103,6 +115,17 @@ const hslToRgb = (h, s, l) => {
         g: Math.round(g * 255),
         b: Math.round(b * 255)
     };
+};
+
+/**
+ * 結果が常に [0, |y|) の範囲になる数学的剰余（C++やJavaの負の数に対する挙動を修正）
+ * @param {number} x - 描画領域のX座標
+ * @param {number} y - 描画領域のY座標
+ * @returns 正の剰余の値
+const mathMod = (x, y) => {
+    const r = x % y;
+    // r が y と異なる符号を持つ場合（rが負でyが正、またはその逆）に y を足す
+    return (r < 0) ? r + y : r;
 };
 
 /**
@@ -149,7 +172,7 @@ const drawLightnessRotation = (ctx, x, y, width, height, sourceImage, rotation =
         const hsl = rgbToHsl(r, g, b);
 
         // 4. 輝度 (L) を回転/シフト
-        let newL = (hsl.l + rotation) % 100;
+        let newL = mathMod(hsl.l + rotation, 100);
 
         // 5. 新しいHSLをRGBに変換し直す
         const newRgb = hslToRgb(hsl.h, hsl.s, newL);
@@ -175,8 +198,7 @@ const draw_0 = (ctx, x, y, width, height) => {
 
     if (img.complete) { // 画像の読み込みが完了していたら
         // 輝度回転を描画
-        const rotation = 50 + 50 * Math.sin(time / 300);
-        drawLightnessRotation(ctx, x, y, width, height, img, rotation);
+        drawLightnessRotation(ctx, x, y, width, height, img, time / 10);
     }
 
     ctx.restore();
