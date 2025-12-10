@@ -1,0 +1,166 @@
+# lightness_rotation
+
+## 概要
+
+JavaScriptで輝度を回転させる(Lightness Rotation)アニメーションを描きます。
+
+<img src="img/screenshot.png" alt="[スクリーンショット]" />
+
+## コード
+
+```js
+// 画像ファイル（読み込むにはWebサーバーが必要。python -m http.server を実行し、指定されたポート番号でlocalhostにアクセス）
+let img = new Image();
+img.src = "./img/takaichi_sanae.png"; // 有名な政治家には肖像権がない（？）
+...
+
+/**
+ * RGB (0-255) を HSL (H: 0-360, S/L: 0-100) に変換します。
+ * @param {number} r 赤 (0-255)
+ * @param {number} g 緑 (0-255)
+ * @param {number} b 青 (0-255)
+ * @returns {{h: number, s: number, l: number}} HSLオブジェクト
+ */
+const rgbToHsl = (r, g, b) => {
+    // 0-1の範囲に正規化
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        // グレーの場合
+        h = s = 0; // 色相も彩度もゼロ
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+        switch (max) {
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
+        }
+
+        h /= 6;
+    }
+
+    // Hを360度、SとLを100%に変換して返す
+    return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+    };
+};
+
+/**
+ * HSL (H: 0-360, S/L: 0-100) を RGB (0-255) に変換します。
+ * @param {number} h 色相 (0-360)
+ * @param {number} s 彩度 (0-100)
+ * @param {number} l 明度 (0-100)
+ * @returns {{r: number, g: number, b: number}} RGBオブジェクト
+ */
+const hslToRgb = (h, s, l) => {
+    let r, g, b;
+
+    // HSLからRGBへの変換に必要なヘルパー関数
+    const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+    };
+
+    // 0-1の範囲に正規化
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    if (s === 0) {
+        // 無彩色 (グレー) の場合
+        r = g = b = l; // r, g, b は l と同じ
+    } else {
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    // 0-255の範囲に変換して返す
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+};
+
+const drawLightnessRotation = (ctx, x, y, width, height, sourceImage, rotation = 0) => {
+    console.assert(sourceImage.complete);
+
+    // 1. 元画像をCanvasの作業領域に描画
+    // 注意: ピクセルデータを取得するため、作業用の非表示のCanvasに描画するか、
+    // または元のCanvasの描画領域と同じサイズでImageDataを取得する必要があります。
+    // ここでは、現在のctxを使ってImageDataを取得します。
+    // 描画サイズは、元の画像のサイズか、指定された幅/高さのうち小さい方を使用する
+    const drawW = Math.min(width, sourceImage.width);
+    const drawH = Math.min(height, sourceImage.height);
+
+    ctx.drawImage(sourceImage, x, y, drawW, drawH);
+
+    // 2. ピクセルデータを取得
+    const imageData = ctx.getImageData(x, y, drawW, drawH);
+    const data = imageData.data; // [R, G, B, A, R, G, B, A, ...] の配列
+
+    // 3. 各ピクセルをループ処理し、色相を変換・回転
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];     // 赤
+        const g = data[i + 1]; // 緑
+        const b = data[i + 2]; // 青
+        // data[i + 3] はアルファ値（透明度）
+
+        // RGBからHSLに変換
+        const hsl = rgbToHsl(r, g, b);
+
+        // 4. 輝度 (L) を回転/シフト
+        let newL = (hsl.l + rotation) % 100;
+
+        // 5. 新しいHSLをRGBに変換し直す
+        const newRgb = hslToRgb(hsl.h, hsl.s, newL);
+
+        // 6. 新しいRGB値でピクセルデータを更新
+        data[i]     = newRgb.r; // 赤
+        data[i + 1] = newRgb.g; // 緑
+        data[i + 2] = newRgb.b; // 青
+        // アルファ値はそのまま
+    }
+
+    // 7. 変換したピクセルデータをCanvasに戻す
+    ctx.putImageData(imageData, x, y);
+};
+
+const draw_0 = (ctx, x, y, width, height) => {
+    ctx.save();
+    
+    // クリッピングする
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+
+    if (img.complete) { // 画像の読み込みが完了していたら
+        drawLightnessRotation(ctx, x, y, width, height, img, time / 5);
+    }
+
+    ctx.restore();
+};
+```
