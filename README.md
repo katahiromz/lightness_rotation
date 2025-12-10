@@ -174,7 +174,9 @@ const draw_0 = (ctx, x, y, width, height) => {
     ctx.clip();
 
     if (img.complete) { // 画像の読み込みが完了していたら
-        drawLightnessRotation(ctx, x, y, width, height, img, time / 5);
+        // 輝度回転を描画
+        const rotation = 50 + 50 * Math.sin(time / 300);
+        drawLightnessRotation(ctx, x, y, width, height, img, rotation);
     }
 
     ctx.restore();
