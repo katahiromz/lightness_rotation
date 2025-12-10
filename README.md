@@ -121,7 +121,7 @@ const hslToRgb = (h, s, l) => {
  * 結果が常に [0, |y|) の範囲になる数学的剰余（C++やJavaの負の数に対する挙動を修正）
  * @param {number} x - 描画領域のX座標
  * @param {number} y - 描画領域のY座標
- * @returns 正の剰余の値
+ * @returns 剰余の値
 const mathMod = (x, y) => {
     const r = x % y;
     // r が y と異なる符号を持つ場合（rが負でyが正、またはその逆）に y を足す
